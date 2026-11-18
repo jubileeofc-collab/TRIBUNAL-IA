@@ -2,6 +2,11 @@ name: Gerar APK TRIBUNAL IA
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/main.yml'
+      - 'TRIBUNAL_IA_2_0_PROJETO_COMPLETO.zip'
 
 jobs:
   build:
@@ -16,16 +21,17 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Aceitar licenças e configurar Android SDK
+      - name: Configurar Android SDK
         shell: bash
         run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
           SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | head -n 1)
           if [ -z "$SDKMANAGER" ]; then
-            echo "sdkmanager não encontrado no Android SDK."
+            echo "sdkmanager não encontrado."
             exit 1
           fi
           yes | "$SDKMANAGER" --licenses
-          "$SDKMANAGER" "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+          "$SDKMANAGER" --install "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 
       - name: Extrair projeto
         run: |
@@ -38,7 +44,9 @@ jobs:
         run: |
           SETTINGS_FILE=$(find source -type f \( -name settings.gradle -o -name settings.gradle.kts \) -print -quit)
           if [ -z "$SETTINGS_FILE" ]; then
-            echo "Projeto Gradle não encontrado dentro do ZIP."
+            echo "ERRO: o ZIP não contém settings.gradle ou settings.gradle.kts."
+            echo "Conteúdo encontrado:"
+            find source -maxdepth 4 -type f | head -100
             exit 1
           fi
           PROJECT_DIR=$(dirname "$SETTINGS_FILE")

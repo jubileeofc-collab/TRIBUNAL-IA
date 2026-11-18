@@ -1,3 +1,4 @@
+
 name: Gerar APK TRIBUNAL IA
 
 on:
@@ -11,31 +12,39 @@ jobs:
       - name: Baixar projeto
         uses: actions/checkout@v4
 
-      - name: Configurar Java
+      - name: Configurar Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
+          cache: gradle
 
-      - name: Configurar Android
+      - name: Configurar Android SDK
         uses: android-actions/setup-android@v3
-
-      - name: Instalar Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.9'
 
       - name: Extrair projeto
         run: |
           mkdir -p source
           unzip -q TRIBUNAL_IA_2_0_PROJETO_COMPLETO.zip -d source
+          find source -name settings.gradle -o -name settings.gradle.kts
+
+      - name: Localizar projeto Gradle
+        run: |
+          PROJECT_DIR=$(dirname "$(find source -name settings.gradle -o -name settings.gradle.kts | head -n 1)")
+          if [ -z "$PROJECT_DIR" ]; then
+            echo "Projeto Gradle não encontrado"
+            exit 1
+          fi
+          echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
 
       - name: Compilar APK
-        working-directory: source
-        run: gradle assembleDebug
+        run: |
+          cd "$PROJECT_DIR"
+          gradle assembleDebug
 
       - name: Disponibilizar APK
         uses: actions/upload-artifact@v4
         with:
           name: TRIBUNAL-IA-APK
-          path: source/app/build/outputs/apk/debug/*.apk
+          path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
